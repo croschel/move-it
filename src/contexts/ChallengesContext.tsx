@@ -1,5 +1,7 @@
 import { createContext, ReactNode, useEffect, useState } from "react";
 import challenges from "../../challenges.json";
+import Cookies from "js-cookie";
+import { LevelUpModal } from "../components/LevelUpModal";
 
 interface challenge {
   type: "body" | "eye";
@@ -21,24 +23,44 @@ interface ChallengesContextData {
 
 interface ChallengesProviderProps {
   children: ReactNode;
+  level: number;
+  currentXP: number;
+  challengesCompleted: number;
 }
 
 export const ChallengesContext = createContext({} as ChallengesContextData);
 
-export function ChallengesProvider({ children }: ChallengesProviderProps) {
-  const [level, setLevel] = useState(1);
-  const [currentXP, setCurrentXP] = useState(0);
-  const [challengesCompleted, setChallengesCompleted] = useState(0);
+export function ChallengesProvider({
+  children,
+  ...rest
+}: ChallengesProviderProps) {
+  const [level, setLevel] = useState(rest.level ?? 1);
+  const [currentXP, setCurrentXP] = useState(rest.currentXP ?? 0);
+  const [challengesCompleted, setChallengesCompleted] = useState(
+    rest.challengesCompleted ?? 0
+  );
   const [activeChallenge, setActiveChallenge] = useState(null);
+  const [isLevelUpModalOpen, setIsLevelModalOpen] = useState(false);
 
   useEffect(() => {
     Notification.requestPermission();
   }, []);
 
+  useEffect(() => {
+    Cookies.set("level", String(level));
+    Cookies.set("currentXP", String(currentXP));
+    Cookies.set("challengesCompleted", String(challengesCompleted));
+  }, [level, currentXP, challengesCompleted]);
+
   const experienceToNextLevel = Math.pow((level + 1) * 6, 2);
 
   function levelUp() {
     setLevel(level + 1);
+    setIsLevelModalOpen(true);
+  }
+
+  function closeModal() {
+    setIsLevelModalOpen(false);
   }
 
   function startNewChallenge() {
@@ -87,6 +109,7 @@ export function ChallengesProvider({ children }: ChallengesProviderProps) {
       }}
     >
       {children}
+      {isLevelUpModalOpen && <LevelUpModal onCloseModal={closeModal} />}
     </ChallengesContext.Provider>
   );
 }
